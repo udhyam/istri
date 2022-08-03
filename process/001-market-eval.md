@@ -13,7 +13,7 @@ The sampling method keeps into account the following criteria:
 
 ## Process
 
-The on-ground operations team 
+The on-ground operations team visits each of the selected geographies selected and collects a sample of size 300, spread equally across all the administrative regions.
 
 The following information is collected about the sample ironing vendors:
 - Personal Details
@@ -21,6 +21,8 @@ The following information is collected about the sample ironing vendors:
 - Awareness Level
 - Product Affordability
 - Marketing Preferences
+
+Retailers and distributors in the region are also surveyed to understand their awareness about the new product and the demand they are fulfilling in the region.
 
 ## Analysis
 
@@ -34,5 +36,5 @@ Following factors are kept in mind while evaluating this decision:
 ## Links
 
 - [Survey Form | Live](https://ee.kobotoolbox.org/x/R9d4acAc)
-- [Survey Form | XLSX](../resources/001-market-eval.xlsx)
-- [Survey Form | XLSX](../resources/001-market-eval-retailers.xlsx)
+- [Survey Form - Vyapaaris | XLSX](../resources/001-market-eval.xlsx)
+- [Survey Form - Retailers | XLSX](../resources/001-market-eval-retailers.xlsx)
