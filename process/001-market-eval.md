@@ -35,6 +35,5 @@ Following factors are kept in mind while evaluating this decision:
 
 ## Links
 
-- [Survey Form | Live](https://ee.kobotoolbox.org/x/R9d4acAc)
 - [Survey Form - Vyapaaris | XLSX](../resources/001-market-eval.xlsx)
 - [Survey Form - Retailers | XLSX](../resources/001-market-eval-retailers.xlsx)
