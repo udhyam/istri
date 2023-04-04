@@ -8,6 +8,7 @@ rm(list = ls())
 library(KoboconnectR)
 library(tidyverse)
 library(janitor)
+library(lubridate)
 library(googlesheets4)
 
 # Identify Data
@@ -20,6 +21,9 @@ PASSWORD <- Sys.getenv(c("PASSWORD"))
 # Login into Kobo
 kobo_token <- get_kobo_token(url = "kf.kobotoolbox.org", uname = USER_ID, pwd = PASSWORD)
 
+# Login into Google
+gs4_auth()
+
 # List of Kobo forms data to download
 kobo_forms_list <- kobotools_api(url = "kf.kobotoolbox.org", simplified = T, uname = USER_ID, pwd = PASSWORD)
 
@@ -29,6 +33,9 @@ id_market_retailers <- kobo_forms_list[kobo_forms_list$name == "Market Entry Sur
 id_pitching_vyapaaris <- kobo_forms_list[kobo_forms_list$name == "Pitching - Vyapaaris", ]$asset
 id_onbaording_vyapaaris <- kobo_forms_list[kobo_forms_list$name == "Onboarding - Vyapaaris", ]$asset
 id_pitching_onbaording_vyapaaris <- kobo_forms_list[kobo_forms_list$name == "Pitching and Onboarding - Vyapaaris", ]$asset
+id_sustenance_vyapaaris <- kobo_forms_list[kobo_forms_list$name == "Market Sustenance Status - Vyapaaris", ]$asset
+id_sustenance_retailers <- kobo_forms_list[kobo_forms_list$name == "Market Sustenance Status - Retailers", ]$asset
+id_awareness_vyapaaris <- kobo_forms_list[kobo_forms_list$name == "Awareness Campaign - Vyapaaris", ]$asset
 
 # Downloading Data
 # -------------
@@ -95,11 +102,47 @@ data_pitching_onboarding_vyapaaris <-
 
 # Verification Data
 data_verification_vyapaaris <- read_sheet("https://docs.google.com/spreadsheets/d/1irc7ENnrQ7w1IZ4vcBU9pzs1kBlxHNKRqziWki4mJgo/", 
-           sheet = "KoBo Onboarding(Direct)")
+           sheet = "Data Onboarding sheet")
 
 # Distribution Data
 data_distribution_vyapaaris <- read_sheet("https://docs.google.com/spreadsheets/d/1irc7ENnrQ7w1IZ4vcBU9pzs1kBlxHNKRqziWki4mJgo/", 
-           sheet = "Master Sheet")
+           sheet = "Data Master Sheet")
+
+# Sustenance - Vyapaaris
+data_sustenance_vyapaaris <- 
+  kobo_df_download(
+    url = "kf.kobotoolbox.org",
+    uname = USER_ID,
+    pwd = PASSWORD,
+    assetid = id_sustenance_vyapaaris,
+    all = "true",
+    lang = "_xml",
+    sleep = 5
+  )
+
+# Sustenance - Retailers
+data_sustenance_retailers <- 
+  kobo_df_download(
+    url = "kf.kobotoolbox.org",
+    uname = USER_ID,
+    pwd = PASSWORD,
+    assetid = id_sustenance_retailers,
+    all = "true",
+    lang = "_xml",
+    sleep = 5
+  )
+
+# Awareness - Vyapaaris
+data_awareness_vyapaaris <- 
+  kobo_df_download(
+    url = "kf.kobotoolbox.org",
+    uname = USER_ID,
+    pwd = PASSWORD,
+    assetid = id_awareness_vyapaaris,
+    all = "true",
+    lang = "_xml",
+    sleep = 5
+  )
 
 # Cleaning Data
 # -------------
@@ -112,6 +155,9 @@ data_onboarding_vyapaaris <- clean_names(data_onboarding_vyapaaris)
 data_pitching_onboarding_vyapaaris <- clean_names(data_pitching_onboarding_vyapaaris)
 data_verification_vyapaaris <- clean_names(data_verification_vyapaaris)
 data_distribution_vyapaaris <- clean_names(data_distribution_vyapaaris)
+data_sustenance_vyapaaris <- clean_names(data_sustenance_vyapaaris)
+data_sustenance_retailers <- clean_names(data_sustenance_retailers)
+data_awareness_vyapaaris <- clean_names(data_awareness_vyapaaris)
 
 # Remove test entries
 data_market_vyapaaris_clean <- data_market_vyapaaris %>%
@@ -129,6 +175,15 @@ data_onboarding_vyapaaris_clean <- data_onboarding_vyapaaris %>%
 data_pitching_onboarding_vyapaaris_clean <- data_pitching_onboarding_vyapaaris %>%
   filter(!(str_detect(str_to_upper(vyapaari_name), "TEST") | str_detect(str_to_upper(surveyor_name), "TEST")))
 
+data_sustenance_vyapaaris_clean <- data_sustenance_vyapaaris %>%
+  filter(!(str_detect(str_to_upper(vyapaari_name), "TEST") | str_detect(str_to_upper(surveyor_name), "TEST")))
+
+data_sustenance_retailers_clean <- data_sustenance_retailers %>%
+  filter(!str_detect(str_to_upper(saathi_name), "TEST"))
+
+data_awareness_vyapaaris_clean <- data_awareness_vyapaaris %>%
+  filter(!(str_detect(str_to_upper(vyapaari_name), "TEST") | str_detect(str_to_upper(surveyor_name), "TEST")))
+
 # Select Relevant Data
 # Append the two pitching datasets
 data_pitching_vyapaaris_clean <- bind_rows(data_pitching_vyapaaris_clean, data_pitching_onboarding_vyapaaris_clean)[, 1:64]
@@ -143,9 +198,10 @@ data_verification_vyapaaris_clean <- data_verification_vyapaaris %>%
 data_distribution_vyapaaris_clean <- data_distribution_vyapaaris %>%
   mutate(vyapaari_id = str_remove(vyapaari_id, " "),
          vyapaari_phone_number = as.numeric(as.character(vyapaari_phone_number)),
-         cohort = str_to_lower(str_remove(cohort, " "))) %>%
-  select(vyapaari_phone_number, vyapaari_id, funder, saathi_allocation,
-         distributor_allocation, cohort, delivery_date, delivery_status_of_lpg_iron_box)
+         cohort = str_to_lower(str_remove_all(cohort, " ")),
+         delivery_date = ymd(delivery_date)) %>%
+  select(vyapaari_phone_number, vyapaari_id, funder, saathi_allocation, distributor_allocation, 
+         cohort, delivery_date, delivery_status_of_lpg_iron_box, united_way_phase)
 
 # Transforming Data
 # -------------
@@ -198,14 +254,39 @@ implementation_master_status <- implementation_master_status %>%
 implementation_master_status <- implementation_master_status %>%
   mutate(today_onboard = if_else(is.na(today_onboard), "", today_onboard))
 
+## Clean Sustenance Data
+# Iron box type - Vyapaaris
+data_sustenance_vyapaaris_clean <- data_sustenance_vyapaaris_clean %>%
+  mutate(vyapaari_iron_box_type_final = if_else(vyapaari_iron_box_type_lpg == 1, "lpg", 
+                                                if_else(vyapaari_iron_box_type_coal == 1, "coal", "electric")))
+
+# Iron box type - Retailers
+data_sustenance_retailers_clean <- data_sustenance_retailers_clean %>%
+  mutate(retailer_iron_box_type_final = if_else(retailer_iron_box_type_lpg == 1, "lpg", 
+                                                if_else(retailer_iron_box_type_coal == 1, "coal", "electric")))
+
+## Clean Awareness Data
+# Iron box type
+data_awareness_vyapaaris_clean <- data_awareness_vyapaaris_clean %>%
+  mutate(vyapaari_iron_box_type_final = if_else(vyapaari_iron_box_type_lpg == 1, "lpg", 
+                                                if_else(vyapaari_iron_box_type_coal == 1, "coal", "electric")))
+
+
 ## Export the data files
 ## Market Survey
 write_csv(data_market_vyapaaris_clean, "data/processed/data_market_vyapaaris.csv")
 write_csv(data_market_retailers_clean, "data/processed/data_market_retailers.csv")
 
-## Implementationx
+## Implementation
 write_csv(implementation_master_status, "data/processed/data_implemented_vyapaaris.csv")
 
 implementation_master_status %>%
   group_by(vyapaari_status) %>%
   summarise(count = n())
+
+## Sustenance Survey
+write_csv(data_sustenance_vyapaaris_clean, "data/processed/data_sustenance_vyapaaris.csv")
+write_csv(data_sustenance_retailers_clean, "data/processed/data_sustenance_retailers.csv")
+
+## Awareness Campaign
+write_csv(data_awareness_vyapaaris_clean, "data/processed/data_awareness_vyapaaris.csv")

@@ -186,10 +186,15 @@ data_onboarding_vyapaaris_clean <- data_onboarding_vyapaaris_clean %>%
          x_id, x_uuid, x_submission_time, x_validation_status, x_index
   )
 
+# Vyapaari IDs Dataset
+data_vyapaari_id <- data_verification_vyapaaris_clean %>%
+  mutate(vyapaari_id = str_remove(vyapaari_id, " ")) %>%
+  select(vyapaari_phone_number, vyapaari_id)
+
 # Verification - Vyapaaris
 data_verification_vyapaaris_clean <- data_verification_vyapaaris_clean %>%
   mutate(vyapaari_id = str_remove(vyapaari_id, " ")) %>%
-  select(vyapaari_phone_number, vyapaari_id, document_verification_status, 
+  select(vyapaari_id, document_verification_status, 
          approval_for_subsidy, verified_and_approved_by, reason_for_pending_status)
 
 # Distribution - Vyapaaris
@@ -201,16 +206,12 @@ data_distribution_vyapaaris_clean <- data_distribution_vyapaaris_clean %>%
          cohort, delivery_date, delivery_status_of_lpg_iron_box)
 
 # Remove Personally Identifiable Information (PII)
-# Add Vyapaari IDs
-data_vyapaari_id <- data_verification_vyapaaris_clean %>%
-  select(vyapaari_phone_number, vyapaari_id)
-
-## Join to Pitching data
+## Pitching data
 data_pitching_vyapaaris_clean <- data_pitching_vyapaaris_clean %>%
   inner_join(data_vyapaari_id, by = "vyapaari_phone_number") %>%
   select(-vyapaari_phone_number)
 
-## Join to onboarding data
+## Onboarding data
 data_onboarding_vyapaaris_clean <- data_onboarding_vyapaaris_clean %>%
   inner_join(data_vyapaari_id, by = "vyapaari_phone_number") %>%
   select(-vyapaari_phone_number)
